@@ -1,0 +1,12 @@
+{application, libleofs,
+ [
+  {description, "LeoFS management library."},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { libleofs, []}},
+  {env, []}
+ ]}.
