@@ -14,7 +14,7 @@
 %% [S3-related Maintenance]
 -export([create_user/3, create_user/4, delete_user/3, update_user_role/4,
          update_user_password/4, get_users/2, add_endpoint/3, delete_endpoint/3,
-         get_endpoints/2, add_bucket/3, delete_bucket/3, chowl_bucket/4,
+         get_endpoints/2, add_bucket/4, delete_bucket/4, chown_bucket/4,
          update_acl/4, get_buckets/2, get_buckets/3]).
 
 %% [Multi-DC Replication]
@@ -76,21 +76,47 @@
 -define(DUMP_RING, "dump-ring").
 -define(LOGIN, "login").
 
-%% [Cluster Operation]
+-type host() :: inet:hostname() | inet:ip_address().
+-type net_port() :: inet:port_number().
+-type str() :: iolist() | binary().
+-type leo_reply() :: {ok, term()} | {error, term()}.
+
+
+%% ===================================================================
+%% Cluster Operation
+%% ===================================================================
+
+-spec start(Host::host(), Port::net_port()) ->
+                   leo_reply().
 start(Host, Port) ->
     cmd(Host, Port, ?START).
+
+-spec detach(Host::host(), Port::net_port(), Node::str()) ->
+                    leo_reply().
 
 detach(Host, Port, Node) ->
     cmd(Host, Port, [?DETACH, $\s, Node]).
 
+-spec suspend(Host::host(), Port::net_port(), Node::str()) ->
+                     leo_reply().
+
 suspend(Host, Port, Node) ->
     cmd(Host, Port, [?SUSPEND, $\s, Node]).
+
+-spec resume(Host::host(), Port::net_port(), Node::str()) ->
+                    leo_reply().
 
 resume(Host, Port, Node) ->
     cmd(Host, Port, [?RESUME, $\s, Node]).
 
+-spec rebalance(Host::host(), Port::net_port()) ->
+                       leo_reply().
+
 rebalance(Host, Port) ->
     cmd(Host, Port, ?REBALANCE).
+
+-spec whereis(Host::host(), Port::net_port(), Path::str()) ->
+                     leo_reply().
 
 whereis(Host, Port, Path) ->
     case cmd(Host, Port, [?WHEREIS, $\s, Path]) of
@@ -100,68 +126,138 @@ whereis(Host, Port, Path) ->
             O
     end.
 
+-spec recover_file(Host::host(), Port::net_port(), Path::str()) ->
+                          leo_reply().
+
 recover_file(Host, Port, Path) ->
     cmd(Host, Port, [?RECOVER_FILE, $\s, Path]).
+
+-spec recover_node(Host::host(), Port::net_port(), Node::str()) ->
+                          leo_reply().
 
 recover_node(Host, Port, Node) ->
     cmd(Host, Port, [?RECOVER_NODE, $\s, Node]).
 
+-spec recover_ring(Host::host(), Port::net_port(), Node::str()) ->
+                          leo_reply().
+
 recover_ring(Host, Port, Node) ->
     cmd(Host, Port, [?RECOVER_RING, $\s, Node]).
+
+-spec recover_cluster(Host::host(), Port::net_port(), ClusterID::str()) ->
+                             leo_reply().
 
 recover_cluster(Host, Port, ClusterID) ->
     cmd(Host, Port, [?RECOVER_CLUSTER, $\s, ClusterID]).
 
-%% [Storage Maintenance]
+%% ===================================================================
+%% Storage Maintenance
+%% ===================================================================
+
+-spec du(Host::host(), Port::net_port(), Node::str()) ->
+                leo_reply().
+
 du(Host, Port, Node) ->
     cmd(Host, Port, [?DU, $\s, Node]).
 
+-spec compact_start(Host::host(), Port::net_port(), Node::str(),
+                    NumOfTargets::pos_integer(),
+                    NumOfConcurrents::pos_integer()) ->
+                           leo_reply().
+
 compact_start(Host, Port, Node, NumOfTargets, NumOfConcurrents)
-  when is_integer(NumOfTargets),
-       is_integer(NumOfConcurrents) ->
+  when is_integer(NumOfTargets), NumOfTargets > 0,
+       is_integer(NumOfConcurrents), NumOfConcurrents > 0 ->
     cmd(Host, Port, [?COMPACT_START, $\s, Node,
-                       $\s, integer_to_list(NumOfTargets),
-                       $\s, integer_to_list(NumOfConcurrents)]).
+                     $\s, integer_to_list(NumOfTargets),
+                     $\s, integer_to_list(NumOfConcurrents)]).
+
+-spec compact_start(Host::host(), Port::net_port(), Node::str(),
+                    NumOfTargets::pos_integer() | all) ->
+                           leo_reply().
 
 compact_start(Host, Port, Node, all) ->
     cmd(Host, Port, [?COMPACT_START, $\s, Node, " all"]);
 
-compact_start(Host, Port, Node, NumOfTargets) when is_integer(NumOfTargets) ->
+compact_start(Host, Port, Node, NumOfTargets)
+  when is_integer(NumOfTargets), NumOfTargets > 0 ->
     cmd(Host, Port, [?COMPACT_START, $\s, Node,
-                       $\s, integer_to_list(NumOfTargets)]).
+                     $\s, integer_to_list(NumOfTargets)]).
+
+-spec compact_suspend(Host::host(), Port::net_port(), Node::str()) ->
+                             leo_reply().
 
 compact_suspend(Host, Port, Node) ->
     cmd(Host, Port, [?COMPACT_SUSPEND, $\s, Node]).
 
+-spec compact_resume(Host::host(), Port::net_port(), Node::str()) ->
+                            leo_reply().
+
 compact_resume(Host, Port, Node) ->
     cmd(Host, Port, [?COMPACT_RESUME, $\s, Node]).
+
+-spec compact_status(Host::host(), Port::net_port(), Node::str()) ->
+                            leo_reply().
 
 compact_status(Host, Port, Node) ->
     cmd(Host, Port, [?COMPACT_STATUS, $\s, Node]).
 
-%% [Gateway Maintenance]
+%% ===================================================================
+%% Gateway Maintenance
+%% ===================================================================
+
+-spec purge(Host::host(), Port::net_port(), Path::str()) ->
+                   leo_reply().
+
 purge(Host, Port, Path) ->
     cmd(Host, Port, [?PURGE, $\s, Path]).
+
+-spec remove(Host::host(), Port::net_port(), Node::str()) ->
+                    leo_reply().
 
 remove(Host, Port, Node) ->
     cmd(Host, Port, [?REMOVE, $\s, Node]).
 
+%% ===================================================================
+%% S3-related Maintenance
+%% ===================================================================
 
-%% [S3-related Maintenance]
+-spec create_user(Host::host(), Port::net_port(), UserID::str()) ->
+                         leo_reply().
+
 create_user(Host, Port, UserID) ->
     cmd(Host, Port, [?CRE_USER, $\s, UserID]).
+
+-spec create_user(Host::host(), Port::net_port(), UserID::str(),
+                  Password::str()) ->
+                         leo_reply().
 
 create_user(Host, Port, UserID, Password) ->
     cmd(Host, Port, [?CRE_USER, $\s, UserID, $\s, Password]).
 
+-spec delete_user(Host::host(), Port::net_port(), UserID::str()) ->
+                         leo_reply().
+
 delete_user(Host, Port, UserID) ->
     cmd(Host, Port, [?DEL_USER, $\s, UserID]).
+
+
+-spec update_user_role(Host::host(), Port::net_port(), UserID::str(),
+                       RoleID::str()) ->
+                              leo_reply().
 
 update_user_role(Host, Port, UserID, RoleID) ->
     cmd(Host, Port, [?UPD_USER_ROLE, $\s, UserID, $\s, RoleID]).
 
+-spec update_user_password(Host::host(), Port::net_port(), UserID::str(),
+                           Password::str()) ->
+                                  leo_reply().
+
 update_user_password(Host, Port, UserID, Password) ->
     cmd(Host, Port, [?UPD_USER_PASS, $\s, UserID, $\s, Password]).
+
+-spec get_users(Host::host(), Port::net_port()) ->
+                       leo_reply().
 
 get_users(Host, Port) ->
     case cmd(Host, Port, ?GET_USERS) of
@@ -169,13 +265,22 @@ get_users(Host, Port) ->
             {ok, Us};
         O ->
             O
-        end.
+    end.
+
+-spec add_endpoint(Host::host(), Port::net_port(), Endpoint::str()) ->
+                          leo_reply().
 
 add_endpoint(Host, Port, Endpoint) ->
     cmd(Host, Port, [?ADD_ENDPOINT, $\s, Endpoint]).
 
+-spec delete_endpoint(Host::host(), Port::net_port(), Endpoint::str()) ->
+                             leo_reply().
+
 delete_endpoint(Host, Port, Endpoint) ->
     cmd(Host, Port, [?DEL_ENDPOINT, $\s, Endpoint]).
+
+-spec get_endpoints(Host::host(), Port::net_port()) ->
+                           leo_reply().
 
 get_endpoints(Host, Port) ->
     case cmd(Host, Port, ?GET_ENDPOINTS) of
@@ -185,11 +290,22 @@ get_endpoints(Host, Port) ->
             O
     end.
 
-add_bucket(Host, Port, Bucket) ->
-    cmd(Host, Port, [?ADD_BUCKET, $\s, Bucket]).
+-spec add_bucket(Host::host(), Port::net_port(), Bucket::str(),
+                 AccessKeyID::str()) ->
+                        leo_reply().
 
-delete_bucket(Host, Port, Bucket) ->
-    cmd(Host, Port, [?DEL_BUCKET, $\s, Bucket]).
+add_bucket(Host, Port, Bucket, AccessKeyID) ->
+    cmd(Host, Port, [?ADD_BUCKET, $\s, Bucket, $\s, AccessKeyID]).
+
+-spec delete_bucket(Host::host(), Port::net_port(), Bucket::str(),
+                    AccessKeyID::str()) ->
+                           leo_reply().
+
+delete_bucket(Host, Port, Bucket, AccessKeyID) ->
+    cmd(Host, Port, [?DEL_BUCKET, $\s, Bucket, $\s, AccessKeyID]).
+
+-spec get_buckets(Host::host(), Port::net_port()) ->
+                         leo_reply().
 
 get_buckets(Host, Port) ->
     case cmd(Host, Port, ?GET_BUCKETS) of
@@ -199,6 +315,10 @@ get_buckets(Host, Port) ->
             O
     end.
 
+-spec get_buckets(Host::host(), Port::net_port(),
+                  AccessKeyID::str()) ->
+                         leo_reply().
+
 get_buckets(Host, Port, AccessKeyID) ->
     case cmd(Host, Port, [?GET_BUCKET, $\s, AccessKeyID]) of
         {ok, [{<<"buckets">>, Bs}]} ->
@@ -207,9 +327,17 @@ get_buckets(Host, Port, AccessKeyID) ->
             O
     end.
 
-chowl_bucket(Host, Port, Bucket, AccessKeyID) ->
+-spec chown_bucket(Host::host(), Port::net_port(), Bucket::str(),
+                    AccessKeyID::str()) ->
+                           leo_reply().
+
+chown_bucket(Host, Port, Bucket, AccessKeyID) ->
     cmd(Host, Port, [?CHOWN_BUCKET, $\s, Bucket, $\s, AccessKeyID]).
 
+
+-spec update_acl(Host::host(), Port::net_port(), Bucket::str(),
+                 Permission:: public_read | public_read | public_read_write) ->
+                           leo_reply().
 update_acl(Host, Port, Bucket, private) ->
     cmd(Host, Port, [?UPDATE_ACL, $\s, Bucket, $\s, "private"]);
 update_acl(Host, Port, Bucket, public_read) ->
@@ -217,26 +345,44 @@ update_acl(Host, Port, Bucket, public_read) ->
 update_acl(Host, Port, Bucket, public_read_write) ->
     cmd(Host, Port, [?UPDATE_ACL, $\s, Bucket, $\s, "public-read-write"]).
 
-%% [Multi-DC Replication]
+%% ===================================================================
+%% Multi-DC Replication
+%% ===================================================================
 
+-spec join_cluster(Host::host(), Port::net_port(), BucketRemoteMaster::str(),
+                   RemoteSlave::str()) ->
+                          leo_reply().
 join_cluster(Host, Port, RemoteMaster, RemoteSlave) ->
     cmd(Host, Port, [?JOIN_CLUSTER, $\s, RemoteMaster, $\s, RemoteSlave]).
 
+-spec remove_cluster(Host::host(), Port::net_port(), BucketRemoteMaster::str(),
+                   RemoteSlave::str()) ->
+                          leo_reply().
 remove_cluster(Host, Port, RemoteMaster, RemoteSlave) ->
     cmd(Host, Port, [?REMOVE_CLUSTER, $\s, RemoteMaster, $\s, RemoteSlave]).
 
+-spec cluster_status(Host::host(), Port::net_port()) ->
+                          leo_reply().
 cluster_status(Host, Port) ->
     cmd(Host, Port, ?CLUSTER_STATUS).
 
-%% [Misc]
+%% ===================================================================
+%% Misc
+%% ===================================================================
 
+-spec version(Host::host(), Port::net_port()) ->
+                     {ok, Version::binary()} | {error, term()}.
 version(Host, Port) ->
     case cmd(Host, Port, ?VERSION) of
         {ok, [{<<"result">>, Vsn}]} ->
             {ok, Vsn};
         O ->
             O
-end.
+    end.
+
+-spec login(Host::host(), Port::net_port(),
+            User::str(), Pass::str()) ->
+                   leo_reply().
 
 login(Host, Port, User, Pass) ->
     case cmd(Host, Port, [?LOGIN, $\s, User, $\s, Pass]) of
@@ -246,11 +392,25 @@ login(Host, Port, User, Pass) ->
             O
     end.
 
+-spec status(Host::host(), Port::net_port()) ->
+                    leo_reply().
+
 status(Host, Port) ->
     cmd(Host, Port, ?STATUS).
 
+-spec status(Host::host(), Port::net_port(), Node::str()) ->
+                    leo_reply().
+
 status(Host, Port, Node) ->
     cmd(Host, Port, [?STATUS, $\s, Node]).
+
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
+
+-spec cmd(Host::host(), Port::net_port(), Comand::str()) ->
+                 leo_reply().
 
 cmd(Host, Port, Cmd) ->
     Opts = [binary, {active, false}, {packet, line}],
@@ -258,14 +418,21 @@ cmd(Host, Port, Cmd) ->
     ok = gen_tcp:send(Sock, [Cmd, $\n]),
     Res = case gen_tcp:recv(Sock, 0) of
               {ok, R} ->
-                  case jsx:decode(R) of
-                      [{<<"error">>, E}] ->
-                          {error, E};
-                      O ->
-                          {ok, O}
-                  end;
-              E ->
-                  E
+                  decode(R);
+              {error, E} ->
+                  {error, E}
           end,
     gen_tcp:close(Sock),
     Res.
+
+
+-spec decode(Reply::binary()) ->
+                    leo_reply().
+
+decode(Reply) ->
+    case jsx:decode(Reply) of
+        [{<<"error">>, E}] ->
+            {error, E};
+        O ->
+            {ok, O}
+    end.
