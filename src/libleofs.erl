@@ -413,6 +413,7 @@ status(Host, Port, Node) ->
                  leo_reply().
 
 cmd(Host, Port, Cmd) ->
+    lager:debug("[leo] < ~s", [Cmd]),
     Opts = [binary, {active, false}, {packet, line}],
     {ok, Sock} = gen_tcp:connect(Host, Port, Opts),
     ok = gen_tcp:send(Sock, [Cmd, $\n]),
@@ -430,6 +431,7 @@ cmd(Host, Port, Cmd) ->
                     leo_reply().
 
 decode(Reply) ->
+    lager:debug("[leo] > ~p", [Reply]),
     case jsx:decode(Reply) of
         [{<<"error">>, E}] ->
             {error, E};
