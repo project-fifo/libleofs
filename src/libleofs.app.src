@@ -9,5 +9,8 @@
                   jsx,
                   lager
                  ]},
-  {env, []}
+  {env, []},
+  {contributors, ["Heinz N. Gies"]},
+  {licenses, ["CDDL"]},
+  {links, [{"Github", "https://github.com/project-fifo/libleofs"}]}
  ]}.
