@@ -11,7 +11,8 @@
 
 %% [Storage Maintenance]
 -export([du/3, compact_start/4, compact_start/5,
-         compact_suspend/3, compact_resume/3, compact_status/3]).
+         compact_suspend/3, compact_resume/3, compact_status/3,
+         diagnose_start/3]).
 
 %% [Gateway Maintenance]
 -export([purge/3, remove/3]).
@@ -54,6 +55,7 @@
 -define(COMPACT_SUSPEND, "compact suspend").
 -define(COMPACT_RESUME, "compact resume").
 -define(COMPACT_STATUS, "compact status").
+-define(DIAGNOSE_START, "diagnose-data").
 
 %% [Gateway Maintenance]
 -define(PURGE, "purge").
@@ -256,6 +258,12 @@ compact_resume(Host, Port, Node) ->
 
 compact_status(Host, Port, Node) ->
     cmd(Host, Port, [?COMPACT_STATUS, $\s, Node]).
+
+-spec diagnose_start(Host::host(), Port::net_port(), Node::str()) ->
+                            leo_reply().
+
+diagnose_start(Host, Port, Node) ->
+    cmd(Host, Port, [?DIAGNOSE_START, $\s, Node]).
 
 %% ===================================================================
 %% Gateway Maintenance
