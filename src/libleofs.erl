@@ -2,7 +2,11 @@
 
 %% Cluster Operations
 -export([detach/3, suspend/3, resume/3, start/2, rebalance/2, whereis/3,
-         recover_file/3, recover_node/3, recover_ring/3, recover_cluster/3]).
+         recover_file/3, recover_node/3, recover_ring/3, recover_cluster/3,
+         rollback/3]).
+
+%% MQ Operations on storage nodes
+-export([mq_stats/3, mq_suspend/4, mq_resume/4]).
 
 %% [Storage Maintenance]
 -export([du/3, compact_start/4, compact_start/5,
@@ -34,7 +38,12 @@
 -define(RECOVER_NODE, "recover node").
 -define(RECOVER_RING, "recover ring").
 -define(RECOVER_CLUSTER, "recover ring").
+-define(ROLLBACK, "rollback").
 
+%% [MQ Operations on storage nodes]
+-define(MQ_STATS, "mq-stats").
+-define(MQ_SUSPEND, "mq-suspend").
+-define(MQ_RESUME, "mq-resume").
 
 %% [Storage Maintenance]
 -define(DU, "du").
@@ -152,6 +161,34 @@ recover_ring(Host, Port, Node) ->
 
 recover_cluster(Host, Port, ClusterID) ->
     cmd(Host, Port, [?RECOVER_CLUSTER, $\s, ClusterID]).
+
+-spec rollback(Host::host(), Port::net_port(), Node::str()) ->
+                             leo_reply().
+
+rollback(Host, Port, Node) ->
+    cmd(Host, Port, [?ROLLBACK, $\s, Node]).
+
+%% ===================================================================
+%% MQ Operations on storage nodes
+%% ===================================================================
+
+-spec mq_stats(Host::host(), Port::net_port(), Node::str()) ->
+                             leo_reply().
+
+mq_stats(Host, Port, Node) ->
+    cmd(Host, Port, [?MQ_STATS, $\s, Node]).
+
+-spec mq_suspend(Host::host(), Port::net_port(), Node::str(), MQID::str()) ->
+                             leo_reply().
+
+mq_suspend(Host, Port, Node, MQID) ->
+    cmd(Host, Port, [?MQ_SUSPEND, $\s, Node, $\s, MQID]).
+
+-spec mq_resume(Host::host(), Port::net_port(), Node::str(), MQID::str()) ->
+                             leo_reply().
+
+mq_resume(Host, Port, Node, MQID) ->
+    cmd(Host, Port, [?MQ_RESUME, $\s, Node, $\s, MQID]).
 
 %% ===================================================================
 %% Storage Maintenance
