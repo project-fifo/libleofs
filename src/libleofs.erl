@@ -420,15 +420,30 @@ cmd(Host, Port, Cmd) ->
     Opts = [binary, {active, false}, {packet, line}],
     {ok, Sock} = gen_tcp:connect(Host, Port, Opts, ?DEF_TIMEOUT),
     ok = gen_tcp:send(Sock, [Cmd, $\n]),
-    Res = case gen_tcp:recv(Sock, 0, ?DEF_TIMEOUT) of
-              {ok, R} ->
-                  decode(R);
-              {error, E} ->
-                  {error, E}
-          end,
+    Res = do_recv_and_decode(Sock),
     gen_tcp:close(Sock),
     Res.
 
+%% @private Receive all data sent from the peer and
+%%          decode the complete json string.
+do_recv_and_decode(Sock) ->
+    do_recv_and_decode(Sock, <<>>).
+
+do_recv_and_decode(Sock, Buf) ->
+    case gen_tcp:recv(Sock, 0, ?DEF_TIMEOUT) of
+        {ok, R} ->
+            NewBuf = <<Buf/binary, R/binary>>,
+            case catch decode(NewBuf) of
+                {'EXIT', _Cause} ->
+                    %% Since the body received is still incomplete,
+                    %% try gen_tcp_recv again
+                    do_recv_and_decode(Sock, NewBuf);
+                Res ->
+                    Res
+            end;
+        {error, E} ->
+            {error, E}
+    end.
 
 -spec decode(Reply::binary()) ->
                     leo_reply().
