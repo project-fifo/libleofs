@@ -76,6 +76,9 @@
 -define(DUMP_RING, "dump-ring").
 -define(LOGIN, "login").
 
+%% Constants
+-define(DEF_TIMEOUT, 5000).
+
 -type host() :: inet:hostname() | inet:ip_address().
 -type net_port() :: inet:port_number().
 -type str() :: iolist() | binary().
@@ -415,9 +418,9 @@ status(Host, Port, Node) ->
 cmd(Host, Port, Cmd) ->
     lager:debug("[leo] < ~s", [Cmd]),
     Opts = [binary, {active, false}, {packet, line}],
-    {ok, Sock} = gen_tcp:connect(Host, Port, Opts),
+    {ok, Sock} = gen_tcp:connect(Host, Port, Opts, ?DEF_TIMEOUT),
     ok = gen_tcp:send(Sock, [Cmd, $\n]),
-    Res = case gen_tcp:recv(Sock, 0) of
+    Res = case gen_tcp:recv(Sock, 0, ?DEF_TIMEOUT) of
               {ok, R} ->
                   decode(R);
               {error, E} ->
