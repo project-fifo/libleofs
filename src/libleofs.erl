@@ -3,6 +3,7 @@
 %% Cluster Operations
 -export([detach/3, suspend/3, resume/3, start/2, rebalance/2, whereis/3,
          recover_file/3, recover_node/3, recover_ring/3, recover_cluster/3,
+         recover_disk/4, recover_consistency/3,
          rollback/3]).
 
 %% MQ Operations on storage nodes
@@ -38,6 +39,8 @@
 -define(RECOVER_NODE, "recover node").
 -define(RECOVER_RING, "recover ring").
 -define(RECOVER_CLUSTER, "recover ring").
+-define(RECOVER_DISK, "recover disk").
+-define(RECOVER_CONSIStenCY, "recover consistency").
 -define(ROLLBACK, "rollback").
 
 %% [MQ Operations on storage nodes]
@@ -161,6 +164,18 @@ recover_ring(Host, Port, Node) ->
 
 recover_cluster(Host, Port, ClusterID) ->
     cmd(Host, Port, [?RECOVER_CLUSTER, $\s, ClusterID]).
+
+-spec recover_disk(Host::host(), Port::net_port(), Node::str(), DiskID::str()) ->
+                          leo_reply().
+
+recover_disk(Host, Port, Node, DiskID) ->
+    cmd(Host, Port, [?RECOVER_DISK, $\s, Node, $\s, DiskID]).
+
+-spec recover_consistency(Host::host(), Port::net_port(), Node::str()) ->
+                          leo_reply().
+
+recover_consistency(Host, Port, Node) ->
+    cmd(Host, Port, [?RECOVER_CONSIStenCY, $\s, Node]).
 
 -spec rollback(Host::host(), Port::net_port(), Node::str()) ->
                              leo_reply().
