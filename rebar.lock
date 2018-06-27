@@ -1,9 +1,10 @@
-[{<<"jsx">>,{pkg,<<"jsx">>,<<"1.4.5">>},0},
- {<<"goldrush">>,
-  {git,"git://github.com/DeadZen/goldrush.git",
-       {ref,"71e63212f12c25827e0c1b4198d37d5d018a7fec"}},
-  1},
- {<<"lager">>,
-  {git,"git://github.com/basho/lager.git",
-       {ref,"b6b6cebcb27ccff8acc59ae775acebc2f52e4926"}},
-  0}].
+{"1.1.0",
+[{<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.9">>},1},
+ {<<"jsx">>,{pkg,<<"jsx">>,<<"2.9.0">>},0},
+ {<<"lager">>,{pkg,<<"lager">>,<<"3.6.2">>},0}]}.
+[
+{pkg_hash,[
+ {<<"goldrush">>, <<"F06E5D5F1277DA5C413E84D5A2924174182FB108DABB39D5EC548B27424CD106">>},
+ {<<"jsx">>, <<"D2F6E5F069C00266CAD52FB15D87C428579EA4D7D73A33669E12679E203329DD">>},
+ {<<"lager">>, <<"2C72950A0E75FFD927DD35BC85EA30E7680A264C4BBD08B328250871AC456CC2">>}]}
+].
