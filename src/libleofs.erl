@@ -2,14 +2,25 @@
 
 %% Cluster Operations
 -export([detach/3, suspend/3, resume/3, start/2, rebalance/2, whereis/3,
-         recover_file/3, recover_node/3, recover_ring/3, recover_cluster/3]).
+         recover_file/3, recover_node/3, recover_ring/3, recover_cluster/3,
+         recover_disk/4, recover_consistency/3,
+         rollback/3]).
+
+%% MQ Operations on storage nodes
+-export([mq_stats/3, mq_suspend/4, mq_resume/4]).
 
 %% [Storage Maintenance]
 -export([du/3, compact_start/4, compact_start/5,
-         compact_suspend/3, compact_resume/3, compact_status/3]).
+         compact_suspend/3, compact_resume/3, compact_status/3,
+         diagnose_start/3]).
 
 %% [Gateway Maintenance]
 -export([purge/3, remove/3]).
+
+%% [Manager Maintenance]
+-export([backup_mnesia/3, restore_mnesia/3,
+         update_managers/4, dump_ring/3,
+         update_log_level/4, update_consistency_level/5]).
 
 %% [S3-related Maintenance]
 -export([create_user/3, create_user/4, delete_user/3, update_user_role/4,
@@ -34,7 +45,14 @@
 -define(RECOVER_NODE, "recover node").
 -define(RECOVER_RING, "recover ring").
 -define(RECOVER_CLUSTER, "recover ring").
+-define(RECOVER_DISK, "recover disk").
+-define(RECOVER_CONSIStenCY, "recover consistency").
+-define(ROLLBACK, "rollback").
 
+%% [MQ Operations on storage nodes]
+-define(MQ_STATS, "mq-stats").
+-define(MQ_SUSPEND, "mq-suspend").
+-define(MQ_RESUME, "mq-resume").
 
 %% [Storage Maintenance]
 -define(DU, "du").
@@ -42,10 +60,19 @@
 -define(COMPACT_SUSPEND, "compact suspend").
 -define(COMPACT_RESUME, "compact resume").
 -define(COMPACT_STATUS, "compact status").
+-define(DIAGNOSE_START, "diagnose-data").
 
 %% [Gateway Maintenance]
 -define(PURGE, "purge").
 -define(REMOVE, "remove").
+
+%% [Manager Maintenance]
+-define(BACKUP_MNESIA, "backup-mnesia").
+-define(RESTORE_MNESIA, "restore-mnesia").
+-define(UPDATE_MANAGERS, "update-managers").
+-define(DUMP_RING, "dump-ring").
+-define(UPDATE_LOG_LEVEL, "update-log-level").
+-define(UPDATE_CONSISTENCY_LEVEL, "update-consistency-level").
 
 %% [S3-related Maintenance]
 -define(CRE_USER, "create-user").
@@ -73,8 +100,10 @@
 %% [Misc]
 -define(VERSION, "version").
 -define(STATUS, "status").
--define(DUMP_RING, "dump-ring").
 -define(LOGIN, "login").
+
+%% Constants
+-define(DEF_TIMEOUT, 5000).
 
 -type host() :: inet:hostname() | inet:ip_address().
 -type net_port() :: inet:port_number().
@@ -150,6 +179,46 @@ recover_ring(Host, Port, Node) ->
 recover_cluster(Host, Port, ClusterID) ->
     cmd(Host, Port, [?RECOVER_CLUSTER, $\s, ClusterID]).
 
+-spec recover_disk(Host::host(), Port::net_port(), Node::str(), DiskID::str()) ->
+                          leo_reply().
+
+recover_disk(Host, Port, Node, DiskID) ->
+    cmd(Host, Port, [?RECOVER_DISK, $\s, Node, $\s, DiskID]).
+
+-spec recover_consistency(Host::host(), Port::net_port(), Node::str()) ->
+                          leo_reply().
+
+recover_consistency(Host, Port, Node) ->
+    cmd(Host, Port, [?RECOVER_CONSIStenCY, $\s, Node]).
+
+-spec rollback(Host::host(), Port::net_port(), Node::str()) ->
+                             leo_reply().
+
+rollback(Host, Port, Node) ->
+    cmd(Host, Port, [?ROLLBACK, $\s, Node]).
+
+%% ===================================================================
+%% MQ Operations on storage nodes
+%% ===================================================================
+
+-spec mq_stats(Host::host(), Port::net_port(), Node::str()) ->
+                             leo_reply().
+
+mq_stats(Host, Port, Node) ->
+    cmd(Host, Port, [?MQ_STATS, $\s, Node]).
+
+-spec mq_suspend(Host::host(), Port::net_port(), Node::str(), MQID::str()) ->
+                             leo_reply().
+
+mq_suspend(Host, Port, Node, MQID) ->
+    cmd(Host, Port, [?MQ_SUSPEND, $\s, Node, $\s, MQID]).
+
+-spec mq_resume(Host::host(), Port::net_port(), Node::str(), MQID::str()) ->
+                             leo_reply().
+
+mq_resume(Host, Port, Node, MQID) ->
+    cmd(Host, Port, [?MQ_RESUME, $\s, Node, $\s, MQID]).
+
 %% ===================================================================
 %% Storage Maintenance
 %% ===================================================================
@@ -202,6 +271,12 @@ compact_resume(Host, Port, Node) ->
 compact_status(Host, Port, Node) ->
     cmd(Host, Port, [?COMPACT_STATUS, $\s, Node]).
 
+-spec diagnose_start(Host::host(), Port::net_port(), Node::str()) ->
+                            leo_reply().
+
+diagnose_start(Host, Port, Node) ->
+    cmd(Host, Port, [?DIAGNOSE_START, $\s, Node]).
+
 %% ===================================================================
 %% Gateway Maintenance
 %% ===================================================================
@@ -218,6 +293,51 @@ purge(Host, Port, Path) ->
 remove(Host, Port, Node) ->
     cmd(Host, Port, [?REMOVE, $\s, Node]).
 
+%% ===================================================================
+%% Manager Maintenance
+%% ===================================================================
+
+-spec backup_mnesia(Host::host(), Port::net_port(), Path::str()) ->
+                   leo_reply().
+
+backup_mnesia(Host, Port, Path) ->
+    cmd(Host, Port, [?BACKUP_MNESIA, $\s, Path]).
+
+-spec restore_mnesia(Host::host(), Port::net_port(), Path::str()) ->
+                   leo_reply().
+
+restore_mnesia(Host, Port, Path) ->
+    cmd(Host, Port, [?RESTORE_MNESIA, $\s, Path]).
+
+-spec update_managers(Host::host(), Port::net_port(), Master::str(), Slave::str()) ->
+                   leo_reply().
+
+update_managers(Host, Port, Master, Slave) ->
+    cmd(Host, Port, [?UPDATE_MANAGERS, $\s, Master, $\s, Slave]).
+
+-spec dump_ring(Host::host(), Port::net_port(), Node::str()) ->
+                   leo_reply().
+
+dump_ring(Host, Port, Node) ->
+    cmd(Host, Port, [?DUMP_RING, $\s, Node]).
+
+-spec update_log_level(Host::host(), Port::net_port(), Node::str(), Level::str()) ->
+                   leo_reply().
+
+update_log_level(Host, Port, Node, Level) ->
+    cmd(Host, Port, [?UPDATE_LOG_LEVEL, $\s, Node, $\s, Level]).
+
+-spec update_consistency_level(Host::host(), Port::net_port(),
+                               WriteQuorum::pos_integer(),
+                               ReadQuorum::pos_integer(),
+                               DeleteQuorum::pos_integer()) ->
+                   leo_reply().
+
+update_consistency_level(Host, Port, WriteQuorum, ReadQuorum, DeleteQuorum) ->
+    cmd(Host, Port, [?UPDATE_CONSISTENCY_LEVEL,
+                     $\s, integer_to_list(WriteQuorum),
+                     $\s, integer_to_list(ReadQuorum),
+                     $\s, integer_to_list(DeleteQuorum)]).
 %% ===================================================================
 %% S3-related Maintenance
 %% ===================================================================
@@ -415,17 +535,32 @@ status(Host, Port, Node) ->
 cmd(Host, Port, Cmd) ->
     lager:debug("[leo] < ~s", [Cmd]),
     Opts = [binary, {active, false}, {packet, line}],
-    {ok, Sock} = gen_tcp:connect(Host, Port, Opts),
+    {ok, Sock} = gen_tcp:connect(Host, Port, Opts, ?DEF_TIMEOUT),
     ok = gen_tcp:send(Sock, [Cmd, $\n]),
-    Res = case gen_tcp:recv(Sock, 0) of
-              {ok, R} ->
-                  decode(R);
-              {error, E} ->
-                  {error, E}
-          end,
+    Res = do_recv_and_decode(Sock),
     gen_tcp:close(Sock),
     Res.
 
+%% @private Receive all data sent from the peer and
+%%          decode the complete json string.
+do_recv_and_decode(Sock) ->
+    do_recv_and_decode(Sock, <<>>).
+
+do_recv_and_decode(Sock, Buf) ->
+    case gen_tcp:recv(Sock, 0, ?DEF_TIMEOUT) of
+        {ok, R} ->
+            NewBuf = <<Buf/binary, R/binary>>,
+            case catch decode(NewBuf) of
+                {'EXIT', _Cause} ->
+                    %% Since the body received is still incomplete,
+                    %% try gen_tcp_recv again
+                    do_recv_and_decode(Sock, NewBuf);
+                Res ->
+                    Res
+            end;
+        {error, E} ->
+            {error, E}
+    end.
 
 -spec decode(Reply::binary()) ->
                     leo_reply().
